@@ -1,6 +1,10 @@
 require 'spec_helper'
 
 describe CountryRejector do
+  before :each do
+    reset_configuration
+  end
+
   it 'has a version number' do
     expect(CountryRejector::VERSION).not_to be nil
   end
@@ -27,13 +31,6 @@ describe CountryRejector do
   end
 
   describe "Middleware" do
-    before do
-      CountryRejector::Middleware.configure do |config|
-        config.banned_list = ["CU", "BAD_COUNTRY"]
-        config.country_detector = lambda {|ip| "FR" }
-      end
-    end
-
     # App is the second middleware that return allways 200 OK
     let(:last_middleware) { lambda {|env| [200, env, ['OK']]} }
 
@@ -43,7 +40,14 @@ describe CountryRejector do
     # request is our fake request with our custom rack stack
     let(:request) { Rack::MockRequest.new(subject) }
 
-    context "not banned countries" do
+    context "not banned country" do
+      before(:each) do
+        CountryRejector::Middleware.configure do |config|
+          config.banned_list = ["CU", "BAD_COUNTRY"]
+          config.country_detector = lambda {|ip| "FR" }
+        end
+      end
+
       it "is expected to set ip_rejected to false"do
         response = request.get("/", {"rack.session" => {}, "HTTP_X_REAL_IP" => "80.11.77.16"})
         expect(response.headers["rack.session"].keys).to include("ip_rejected")
@@ -52,8 +56,7 @@ describe CountryRejector do
 
       it "should accept requests if HTTP_X_REAL_IP variable is not set" do
         response = request.get("/", {"rack.session" => {}})
-        expect(response.headers["rack.session"].keys).to include("ip_rejected")
-        expect(response.headers["rack.session"]["ip_rejected"]).to eq(false)
+        expect(response.headers["rack.session"].keys).to_not include("ip_rejected")
       end
 
       it "should not call country_detector if ip_rejected is set" do
@@ -65,25 +68,27 @@ describe CountryRejector do
         }.to_not raise_error
       end
 
+      # I don't like this Workaround :(
       it "should call country_detector if ip_rejected is NOT set" do
         CountryRejector::Middleware.configure do |config|
-          config.country_detector = lambda {|ip| raise "The Lambda was call" }
+          config.country_detector = lambda {|ip| $CountryRejectorError = "The Lambda was call" }
         end
-        expect {
-          request.get("/", {"rack.session" => {}, "HTTP_X_REAL_IP" => "175.45.177.50"})
-        }.to raise_error("The Lambda was call")
+        request.get("/", {"rack.session" => {}, "HTTP_X_REAL_IP" => "175.45.177.50"})
+        expect($CountryRejectorError).to eq "The Lambda was call"
+        $CountryRejectorError = nil
       end
     end
 
     context "banned country" do
       before(:each) do
         CountryRejector::Middleware.configure do |config|
+          config.banned_list = ["CU", "BAD_COUNTRY"]
           config.country_detector = lambda {|ip| "CU" }
         end
       end
 
       it "should return a 403" do
-        response = request.get("/", {"rack.session" => {}})
+        response = request.get("/", {"rack.session" => {}, "HTTP_X_REAL_IP" => "175.45.177.50"})
         expect(response.status).to eq 403
       end
 
@@ -93,6 +98,38 @@ describe CountryRejector do
         expect(response.status).to eq 403
       end
     end
+
+    context "bad lambda execution" do
+      it "should not hung the request if the processor take more than 0.001 ms" do
+        CountryRejector::Middleware.configure do |config|
+          config.country_detector = lambda {|ip| sleep(1000000) }
+        end
+        Timeout::timeout(1) do
+          response = request.get("/", {"rack.session" => {}})
+        end
+      end
+
+      it "should not hung the request if the processor raise" do
+        CountryRejector::Middleware.configure do |config|
+          config.country_detector = lambda {|ip| raise "A big error occured" }
+        end
+        expect {
+          request.get("/", {"rack.session" => {}})
+        }.to_not raise_error
+      end
+    end
+
+    context "bad env ip tag" do
+      it "should skip if no IP given in env" do
+        CountryRejector::Middleware.configure do |config|
+          config.env_ip_tag = "UNKNOWN_BY_ENV"
+        end
+        response = request.get("/", {"rack.session" => {}})
+        expect(response.status).to eq 200
+        expect(response.headers["rack.session"].keys).to_not include("ip_rejected")
+      end
+    end
+
   end
 
 end

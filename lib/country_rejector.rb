@@ -14,6 +14,7 @@
 
 require "country_rejector/version"
 require "country_rejector/configuration"
+require 'timeout'
 
 module CountryRejector
   class Middleware
@@ -25,6 +26,10 @@ module CountryRejector
 
       def configuration
         @configuration ||= Configuration.new
+      end
+
+      def reset_configuration
+        @configuration = nil
       end
     end
 
@@ -42,12 +47,23 @@ module CountryRejector
       self.class.configuration
     end
 
-  private
+  protected
+
+    def get_ip_info ip
+      Timeout::timeout(configuration.timeout_ms / 1000.0) do
+        configuration.country_detector.call(ip)
+      end
+    end
 
     def banned?(env)
+      # binding.pry
       return env["rack.session"]["ip_rejected"] if env["rack.session"].has_key?("ip_rejected")
-      current_country = configuration.country_detector.call(env[configuration.env_ip_tag])
+      return false if env[configuration.env_ip_tag].nil?
+      current_country = get_ip_info(env[configuration.env_ip_tag])
+      return false if current_country.nil?
       env["rack.session"]["ip_rejected"] = configuration.banned_list.include?(current_country)
+    rescue
+      false # let the request pass, the check will be launch next time
     end
 
     def reject_request
