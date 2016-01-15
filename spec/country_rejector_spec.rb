@@ -130,6 +130,28 @@ describe CountryRejector do
       end
     end
 
+    context "Exception fired" do
+      before :each do
+        allow_any_instance_of(CountryRejector::Middleware).to receive(:get_ip_info).and_raise("WhateEverError")
+      end
+
+      it "should return 200 OK" do
+        response = request.get("/", {"rack.session" => {}, "HTTP_X_REAL_IP" => "175.45.177.50"})
+        expect(response.status).to eq 200
+      end
+
+      it "should catch the error" do
+        expect {
+          request.get("/", {"rack.session" => {}, "HTTP_X_REAL_IP" => "175.45.177.50"})
+        }.to_not raise_error
+      end
+
+      it "should not assign ip_rejected session var" do
+        response = request.get("/", {"rack.session" => {}, "HTTP_X_REAL_IP" => "175.45.177.50"})
+        expect(response.headers["rack.session"].keys).to_not include("ip_rejected")
+      end
+    end
+
   end
 
 end
