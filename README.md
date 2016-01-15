@@ -1,4 +1,4 @@
-# CountryRejector [![Build Status](https://travis-ci.org/Vodeclic/country_rejector.svg?branch=master)](https://github.com/Vodeclic/country_rejector)
+# CountryRejector [![Build Status](https://travis-ci.org/Vodeclic/country_rejector.svg?branch=master)](https://github.com/Vodeclic/country_rejector) [![GitHub version](https://badge.fury.io/gh/Vodeclic%2Fcountry_rejector.svg)](https://badge.fury.io/gh/Vodeclic%2Fcountry_rejector) [![Coverage Status](https://coveralls.io/repos/Vodeclic/country_rejector/badge.svg?branch=master&service=github)](https://coveralls.io/github/Vodeclic/country_rejector?branch=master)
 
 Rack middleware that ban any IP located in a ban list.
 
