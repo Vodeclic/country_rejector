@@ -1,8 +1,6 @@
 # CountryRejector
 
-Welcome to your new gem! In this directory, you'll find the files you need to be able to package up your Ruby library into a gem. Put your Ruby code in the file `lib/country_rejector`. To experiment with that code, run `bin/console` for an interactive prompt.
-
-TODO: Delete this and the text above, and describe your gem
+Rack middleware that ban any IP located in a ban list.
 
 ## Installation
 
@@ -22,20 +20,36 @@ Or install it yourself as:
 
 ## Usage
 
-TODO: Write usage instructions here
+Add this line in your application.rb
+```ruby
+config.middleware.use "CountryRejector::Middleware"
+```
 
-## Development
+Create an initializer file (rack_reject_countries.rb)
+```ruby
+CountryRejector::Middleware.configure do |config|
+  config.banned_list = ::Gaston.countries.banned # is an array that list all country codes that are banished
+  # config.country_detector = lambda {|ip| ::TZInfo::detect_country(ip) } # is the processor that is executed to get the associated country code
+  # config.env_ip_tag = "HTTP_X_REAL_IP" # is the key checked in ENV for the current ip
+end
+```
+#
 
-After checking out the repo, run `bin/setup` to install dependencies. Then, run `rake spec` to run the tests. You can also run `bin/console` for an interactive prompt that will allow you to experiment.
+## Advice
 
-To install this gem onto your local machine, run `bundle exec rake install`. To release a new version, update the version number in `version.rb`, and then run `bundle exec rake release`, which will create a git tag for the version, push git commits and tags, and push the `.gem` file to [rubygems.org](https://rubygems.org).
-
+Don't use this middleware in your test environnement! ( It's a bad idea ).
+So add this line in your environments/test.rb for example:
+```ruby
+  config.middleware.delete ::CountryRejector::Middleware
+```
+## Testing the Gem
+- Run the RSpec tests:
+```system
+bundle exec rspec
+```
 ## Contributing
 
-Bug reports and pull requests are welcome on GitHub at https://github.com/[USERNAME]/country_rejector.
-
+Bug reports and pull requests are welcome on GitHub at https://github.com/Vodeclic/country_rejector.
 
 ## License
-
-The gem is available as open source under the terms of the [MIT License](http://opensource.org/licenses/MIT).
-
+Copyright © 2016 Vodeclic SAS released under the  [MIT License](http://opensource.org/licenses/MIT).
