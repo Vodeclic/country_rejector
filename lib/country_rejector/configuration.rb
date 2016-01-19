@@ -6,7 +6,7 @@ module CountryRejector
       @banned_list = []
       @country_detector = ::CountryRejector::Processor
       @env_ip_tag = "HTTP_X_REAL_IP"
-      @timeout_ms = 50
+      @timeout_ms = 500
     end
   end
 end

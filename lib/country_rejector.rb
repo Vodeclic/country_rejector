@@ -57,7 +57,6 @@ module CountryRejector
     end
 
     def banned?(env)
-      # binding.pry
       return env["rack.session"]["ip_rejected"] if env["rack.session"].has_key?("ip_rejected")
       return false if env[configuration.env_ip_tag].nil?
       current_country = get_ip_info(env[configuration.env_ip_tag])
