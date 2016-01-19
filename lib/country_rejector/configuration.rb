@@ -4,9 +4,9 @@ module CountryRejector
 
     def initialize
       @banned_list = []
-      @country_detector = lambda {|ip| ::TZInfo::detect_country(ip) }
+      @country_detector = ::CountryRejector::Processor
       @env_ip_tag = "HTTP_X_REAL_IP"
-      @timeout_ms = 1
+      @timeout_ms = 50
     end
   end
 end

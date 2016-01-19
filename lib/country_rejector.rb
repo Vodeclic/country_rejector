@@ -14,6 +14,7 @@
 
 require "country_rejector/version"
 require "country_rejector/configuration"
+require "country_rejector/processor"
 require 'timeout'
 
 module CountryRejector
